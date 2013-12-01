@@ -1,9 +1,10 @@
-package webchan
+package gosocket
 
 import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strings"
 	"sync"
 
 	ws "code.google.com/p/go.net/websocket"
@@ -72,10 +73,14 @@ func (s *Server) Errored(f func(error)) {
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	s.wsServer.ServeHTTP(w, req)
+	if strings.HasSuffix(req.URL.Path, "/gs.js") {
+		w.Write([]byte(js))
+	} else {
+		s.wsServer.ServeHTTP(w, req)
+	}
 }
 
-const js = `function WebChan(url) {
+const js = `function GoSocket(url) {
 	var conn = new WebSocket("ws://" + url);
 	var paths = {};
 
@@ -123,10 +128,6 @@ const js = `function WebChan(url) {
 
 	return this;
 };`
-
-func JavaScript(w http.ResponseWriter, req *http.Request) {
-	w.Write([]byte(js))
-}
 
 type Conn struct {
 	c *ws.Conn
