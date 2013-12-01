@@ -4,22 +4,21 @@ import (
 	"fmt"
 	"net/http"
 
-	wc "github.com/CasualSuperman/webchan"
+	gs "github.com/CasualSuperman/gosocket"
 )
 
 func main() {
-	s := wc.NewServer()
+	s := gs.NewServer()
 	s.Handle("/hello", helloHandler)
 	s.Handle("/goodbye", goodbyeHandler)
-	s.Closed(func(c wc.Conn) {
+	s.Closed(func(c gs.Conn) {
 		fmt.Println("Connection closed.")
 	})
 	s.Errored(func(err error) {
 		fmt.Println("Error encountered:", err.Error())
 	})
 
-	http.Handle("/wc", s)
-	http.HandleFunc("/wc.js", wc.JavaScript)
+	http.Handle("/gs/", s)
 	http.HandleFunc("/", index)
 	http.ListenAndServe(":6060", nil)
 }
@@ -28,7 +27,7 @@ func index(w http.ResponseWriter, req *http.Request) {
 	w.Write([]byte(page))
 }
 
-func helloHandler(c wc.Conn, d wc.Data) {
+func helloHandler(c gs.Conn, d gs.Data) {
 	var msg string
 
 	err := d.Receive(&msg)
@@ -44,7 +43,7 @@ func helloHandler(c wc.Conn, d wc.Data) {
 	c.Send("/say", str)
 }
 
-func goodbyeHandler(c wc.Conn, d wc.Data) {
+func goodbyeHandler(c gs.Conn, d gs.Data) {
 	var msg string
 
 	err := d.Receive(&msg)
@@ -64,21 +63,21 @@ const page = `<!DOCTYPE html>
 <html>
 <head>
 	<title>WebChan</title>
-	<script src="http://localhost:6060/wc.js"></script>
+	<script src="/gs/gs.js"></script>
 </head>
 <body>
 <pre id="log"></pre>
 	<script>
-	var wc = new WebChan("localhost:6060/wc");
-	wc.On("/say", function(msg) {
+	var gs = new GoSocket("localhost:6060/gs/");
+	gs.On("/say", function(msg) {
 		document.getElementById("log").appendChild(document.createTextNode("Server says: " + msg + "\n"));
 	});
-	wc.Ready(function() {
-		wc.Send("/hello", "world");
-		wc.Send("/goodbye", "cruel world");
-		wc._conn.send("error");
+	gs.Ready(function() {
+		gs.Send("/hello", "world");
+		gs.Send("/goodbye", "cruel world");
+		gs._conn.send("error");
 	})
-	setTimeout(wc.Close, 1000);
+	setTimeout(gs.Close, 1000);
 	</script>
 </body>
 </html>`
