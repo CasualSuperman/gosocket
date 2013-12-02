@@ -28,11 +28,11 @@ type message struct {
 	Msg    string
 	ID     int
 	IsResp bool
-	conn   *Conn
+	conn   *conn
 }
 
 func (m message) Receive(v interface{}) error {
-	return Data(m.Msg).Receive(v)
+	return json.Unmarshal([]byte(m.Msg), v)
 }
 
 func (m message) Respond(data interface{}) error {
