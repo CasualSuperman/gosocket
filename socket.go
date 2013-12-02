@@ -17,7 +17,6 @@ type Server struct {
 	lock      sync.Mutex
 	handlers  map[string][]Handler
 	wsServer  ws.Server
-	closeFunc func(*Conn)
 	errorFunc func(error)
 }
 
@@ -52,9 +51,6 @@ func NewServer() *Server {
 				for _, ch := range c.conversations {
 					close(ch)
 				}
-				if s.closeFunc != nil {
-					s.closeFunc(c)
-				}
 				break
 			} else if s.errorFunc != nil {
 				s.errorFunc(err)
@@ -74,10 +70,6 @@ func (s *Server) Handle(path string, h Handler) {
 	handlers := s.handlers[path]
 	handlers = append(handlers, h)
 	s.handlers[path] = handlers
-}
-
-func (s *Server) Closed(f func(*Conn)) {
-	s.closeFunc = f
 }
 
 func (s *Server) Errored(f func(error)) {

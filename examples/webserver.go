@@ -12,9 +12,6 @@ func main() {
 	s.Handle("/hello", helloHandler)
 	s.Handle("/goodbye", goodbyeHandler)
 	s.Handle("/conversation", convoHandler)
-	s.Closed(func(c *gs.Conn) {
-		fmt.Println("Connection closed.")
-	})
 	s.Errored(func(err error) {
 		fmt.Println("Error encountered:", err.Error())
 	})
