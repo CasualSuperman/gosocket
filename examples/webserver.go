@@ -11,7 +11,8 @@ func main() {
 	s := gs.NewServer()
 	s.Handle("/hello", helloHandler)
 	s.Handle("/goodbye", goodbyeHandler)
-	s.Closed(func(c gs.Conn) {
+	s.Handle("/conversation", convoHandler)
+	s.Closed(func(c *gs.Conn) {
 		fmt.Println("Connection closed.")
 	})
 	s.Errored(func(err error) {
@@ -27,36 +28,78 @@ func index(w http.ResponseWriter, req *http.Request) {
 	w.Write([]byte(page))
 }
 
-func helloHandler(c gs.Conn, d gs.Data) {
-	var msg string
+func helloHandler(msg gs.Msg) {
+	var target string
 
-	err := d.Receive(&msg)
+	err := msg.Receive(&target)
 
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
 
-	str := "Hello, " + msg + "!"
+	str := "Hello, " + target + "!"
 
 	fmt.Println(str)
-	c.Send("/say", str)
+	msg.Respond(str)
 }
 
-func goodbyeHandler(c gs.Conn, d gs.Data) {
-	var msg string
+func goodbyeHandler(msg gs.Msg) {
+	var target string
 
-	err := d.Receive(&msg)
+	err := msg.Receive(&target)
 
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
 
-	str := "Goodbye, " + msg + "."
+	str := "Goodbye, " + target + "."
 
 	fmt.Println(str)
-	c.Send("/say", str)
+	msg.Respond(str)
+}
+
+func convoHandler(msg gs.Msg) {
+	var target string
+
+	err := msg.Receive(&target)
+
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+
+	fmt.Println("Convo: got", target)
+
+	err = msg.Respond(target + ", ducks")
+
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+
+	fmt.Println("Convo: sent ducks")
+
+	msg, err = msg.Response()
+
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+
+	err = msg.Receive(&target)
+
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+
+	fmt.Println("Convo: got", target)
+
+	msg.Respond(target + ", turtles")
+
+	fmt.Println("Convo: sent turtles")
 }
 
 const page = `<!DOCTYPE html>
@@ -69,15 +112,29 @@ const page = `<!DOCTYPE html>
 <pre id="log"></pre>
 	<script>
 	var gs = new GoSocket("localhost:6060/gs/");
-	gs.On("/say", function(msg) {
+
+	function log(msg) {
 		document.getElementById("log").appendChild(document.createTextNode("Server says: " + msg + "\n"));
+	}
+
+	gs.send("/hello", "world").response(function(msg) {
+		log(msg.data);
 	});
-	gs.Ready(function() {
-		gs.Send("/hello", "world");
-		gs.Send("/goodbye", "cruel world");
-		gs._conn.send("error");
-	})
-	setTimeout(gs.Close, 1000);
+
+	gs.send("/conversation", "world").response(function(msg) {
+		console.log("Got " + msg.data + ".");
+		console.log("Sent geese");
+		msg.respond(msg.data + ", geese");
+	}).response(function(msg) {
+		console.log("Got " + msg.data + ".");
+		log(msg.data);
+	});
+
+	gs.send("/goodbye", "cruel world").response(function(msg) {
+		log(msg.data);
+	});
+
+	setTimeout(gs.close, 2000);
 	</script>
 </body>
 </html>`
