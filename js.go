@@ -1,21 +1,25 @@
 package gosocket
 
-const js = `function GoSocket(url) {
-	var conn = new WebSocket("ws://" + url);
-	var paths = {};
-	var conversations = {};
-	var id = Math.floor(Math.random() * 100000000);
-	var sendqueue = [];
+const js = `(function(window) {
+"use strict";
 
-	function Msg(socketMsg) {
-		var data = JSON.parse(socketMsg.data);
+function Msg(socketMsg) {
+	var data = JSON.parse(socketMsg.data);
 
-		this.data = JSON.parse(data.Msg);
-		this.isResponse = data.IsResp;
-		this.id = data.ID;
+	this.data = JSON.parse(data.Msg);
+	this.isResponse = data["IsResp"];
+	this.id = data["ID"];
+	this.path = data["Path"];
 
-		return this;
-	}
+	return this;
+}
+
+function GoSocket(url) {
+	var conn = new WebSocket("ws://" + url),
+	    paths = {},
+	    conversations = {},
+	    id = Math.floor(Math.random() * 100000000),
+	    sendqueue = [];
 
 	function addResponse (id, ret) {
 		return function(cb) {
@@ -34,12 +38,11 @@ const js = `function GoSocket(url) {
 		while(sendqueue.length > 0) {
 			conn.send(sendqueue.shift());
 		}
-	}
+	};
 
 	conn.onmessage = function(resp) {
-		var msg = new Msg(resp);
-
-		var pass = {data: msg.data};
+		var msg = new Msg(resp),
+		    pass = {data: msg.data};
 
 		pass.response = addResponse(msg.id, pass);
 
@@ -49,14 +52,14 @@ const js = `function GoSocket(url) {
 			conn.send(JSON.stringify({
 				Msg: data,
 				ID: msg.id,
-				IsResp: true,
+				IsResp: true
 			}));
 
 			return pass;
-		}
+		};
 
 		if (msg.isResponse) {
-			cbs = conversations[msg.id];
+			var cbs = conversations[msg.id];
 			if (cbs) {
 				var cb = cbs.shift();
 				cb(pass);
@@ -66,24 +69,26 @@ const js = `function GoSocket(url) {
 				conversations[msg.id] = cbs;
 			}
 		} else {
-			var handlers = paths[msg.Path];
+			var handlers = paths[msg.path];
 
 			if (handlers) {
-				for (var i = 0; i < handlers.length; i++) {
+				for (var i = handlers.length-1; i >= 0; i--) {
 					handlers[i](pass);
 				}
 			}
 		}
-	}
+	};
 
 	this.send = function(path, msg) {
-		var msg = JSON.stringify(msg);
-		var data = JSON.stringify({
-			Path: path,
-			Msg: msg,
-			ID: id,
-			Response: false,
-		});
+		var msg = JSON.stringify(msg),
+			data = {},
+		    ret = {};
+
+		data["Path"] = path;
+		data["Msg"] = msg;
+		data["ID"] = id;
+
+		data = JSON.stringify(data);
 
 		if (conn.readyState >= conn.OPEN) {
 			conn.send(data);
@@ -91,7 +96,6 @@ const js = `function GoSocket(url) {
 			sendqueue.push(data);
 		}
 
-		var ret = {};
 		ret.response = addResponse(id, ret);
 
 		id++;
@@ -115,4 +119,7 @@ const js = `function GoSocket(url) {
 	this._conn = conn;
 
 	return this;
-};`
+};
+
+window["GoSocket"] = GoSocket;
+}(window))`
