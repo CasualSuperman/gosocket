@@ -25,7 +25,7 @@ func NewServer() *Server {
 	randSrc := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	handleConn := func(wsConn *ws.Conn) {
-		c := &conn{
+		c := &Conn{
 			wsConn,
 			make(map[string][]Handler),
 			make(map[int]chan message),
