@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	gs "github.com/CasualSuperman/gosocket"
+	gs "github.com/CasualSuperman/GoSocket"
 )
 
 func main() {
