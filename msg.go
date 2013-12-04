@@ -28,7 +28,7 @@ type message struct {
 	Msg    string
 	ID     int
 	IsResp bool
-	conn   *conn
+	conn   *Conn
 }
 
 func (m message) Receive(v interface{}) error {

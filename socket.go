@@ -11,13 +11,22 @@ import (
 	ws "code.google.com/p/go.net/websocket"
 )
 
+type eventType byte
+
+const (
+	Connect eventType = iota
+	Disconnect
+)
+
 type Handler func(Msg)
 
 type Server struct {
-	lock      sync.Mutex
-	handlers  map[string][]Handler
-	wsServer  ws.Server
-	errorFunc func(error)
+	lock       sync.Mutex
+	handlers   map[string][]Handler
+	connect    func(*Conn)
+	disconnect func(*Conn)
+	wsServer   ws.Server
+	errorFunc  func(error)
 }
 
 func NewServer() *Server {
@@ -25,11 +34,15 @@ func NewServer() *Server {
 	randSrc := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	handleConn := func(wsConn *ws.Conn) {
-		c := &conn{
+		c := &Conn{
 			wsConn,
 			make(map[string][]Handler),
 			make(map[int]chan message),
 			randSrc.Int(),
+		}
+
+		if s.connect != nil {
+			s.connect(c)
 		}
 
 		for {
@@ -51,6 +64,9 @@ func NewServer() *Server {
 				for _, ch := range c.conversations {
 					close(ch)
 				}
+				if s.disconnect != nil {
+					s.disconnect(c)
+				}
 				break
 			} else if s.errorFunc != nil {
 				s.errorFunc(err)
@@ -70,6 +86,15 @@ func (s *Server) Handle(path string, h Handler) {
 	handlers := s.handlers[path]
 	handlers = append(handlers, h)
 	s.handlers[path] = handlers
+}
+
+func (s *Server) On(e eventType, f func(*Conn)) {
+	switch e {
+	case Connect:
+		s.connect = f
+	case Disconnect:
+		s.disconnect = f
+	}
 }
 
 func (s *Server) Errored(f func(error)) {
