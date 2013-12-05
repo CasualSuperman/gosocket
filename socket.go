@@ -11,6 +11,10 @@ import (
 	ws "code.google.com/p/go.net/websocket"
 )
 
+func mutex() (s sync.Mutex) {
+	return
+}
+
 type eventType byte
 
 const (
@@ -39,6 +43,8 @@ func NewServer() *Server {
 			make(map[string][]Handler),
 			make(map[int]chan message),
 			randSrc.Int(),
+			true,
+			mutex(),
 		}
 
 		if s.connect != nil {
@@ -58,9 +64,14 @@ func NewServer() *Server {
 					for _, handler := range handlers {
 						go handler(msg)
 					}
+					handlers = c.handlers[msg.Path]
+					for _, handler := range handlers {
+						go handler(msg)
+					}
 				}
 
 			} else if err == io.EOF {
+				c.open = false
 				for _, ch := range c.conversations {
 					close(ch)
 				}
