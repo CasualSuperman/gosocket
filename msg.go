@@ -5,12 +5,17 @@ import (
 	"time"
 )
 
+// Msg is a single message sent or received in a gosocket.
 type Msg interface {
+	// Receive allows a handler to retreive the sent data.
 	Receive(interface{}) error
 
+	// Respond allows a response to a message within the same thread of communication.
 	Respond(interface{}) error
 
+	// Response waits for a response to a message.
 	Response() (Msg, error)
+	// TimedResponse waits for a response to a message, but can time out.
 	TimedResponse(time.Duration) (Msg, error)
 }
 
