@@ -3,10 +3,11 @@ package gosocket
 const js = `(function(window) {
 "use strict";
 
+/** @constructor */
 function Msg(socketMsg) {
 	var data = JSON.parse(socketMsg.data);
 
-	this.data = JSON.parse(data.Msg);
+	this.data = JSON.parse(data["Msg"]);
 	this.isResponse = data["IsResp"];
 	this.id = data["ID"];
 	this.path = data["Path"];
@@ -14,6 +15,7 @@ function Msg(socketMsg) {
 	return this;
 }
 
+/** @constructor */
 function GoSocket(url) {
 	var conn = new WebSocket("ws://" + url),
 	    paths = {},
@@ -50,9 +52,9 @@ function GoSocket(url) {
 			data = JSON.stringify(data);
 
 			conn.send(JSON.stringify({
-				Msg: data,
-				ID: msg.id,
-				IsResp: true
+				"Msg": data,
+				"ID": msg.id,
+				"IsResp": true
 			}));
 
 			return pass;
@@ -81,14 +83,11 @@ function GoSocket(url) {
 
 	this.send = function(path, msg) {
 		var msg = JSON.stringify(msg),
-			data = {},
+		    data = JSON.stringify({
+		    	"Path": path,
+		    	"Msg": msg,
+		    	"ID": id}),
 		    ret = {};
-
-		data["Path"] = path;
-		data["Msg"] = msg;
-		data["ID"] = id;
-
-		data = JSON.stringify(data);
 
 		if (conn.readyState >= conn.OPEN) {
 			conn.send(data);
