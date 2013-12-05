@@ -115,6 +115,8 @@ func (s *Server) Errored(f func(error)) {
 func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if strings.HasSuffix(req.URL.Path, "/gs.js") {
 		w.Write([]byte(js))
+	} else if strings.HasSuffix(req.URL.Path, "/gs.min.js") {
+		w.Write([]byte(jsMin))
 	} else {
 		s.wsServer.ServeHTTP(w, req)
 	}
