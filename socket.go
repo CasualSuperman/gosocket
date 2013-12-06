@@ -28,7 +28,6 @@ type Handler func(Msg)
 
 // Server is a gosocket server that can be plugged into an http server in the standard library.
 type Server struct {
-	lock       sync.Mutex
 	handlers   map[string][]Handler
 	connect    func(*Conn)
 	disconnect func(*Conn)
@@ -96,9 +95,6 @@ func NewServer() *Server {
 
 // Handle registers a handler for the given path.  More than one handler can be present on a given path, they will be called in parallel.
 func (s *Server) Handle(path string, h Handler) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
 	handlers := s.handlers[path]
 	handlers = append(handlers, h)
 	s.handlers[path] = handlers

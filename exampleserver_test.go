@@ -1,62 +1,22 @@
-package main
+package gosocket_test
 
 import (
-	"fmt"
 	"net/http"
 
 	gs "github.com/CasualSuperman/gosocket"
 )
 
-func main() {
+func ExampleServer() {
 	s := gs.NewServer()
-	s.Handle("/hello", helloHandler)
-	s.Handle("/goodbye", goodbyeHandler)
-	s.Handle("/conversation", convoHandler)
-	s.Errored(func(err error) {
-		fmt.Println("Error encountered:", err.Error())
+
+	s.On(gs.Connect, func(c *gs.Conn) {
+		c.Send("hello", "world")
 	})
 
-	http.Handle("/gs/", s)
-	http.HandleFunc("/", index)
-	http.ListenAndServe(":6060", nil)
+	http.ListenAndServe(":6060", s)
 }
 
-func index(w http.ResponseWriter, req *http.Request) {
-	w.Write([]byte(page))
-}
-
-func helloHandler(msg gs.Msg) {
-	var target string
-
-	err := msg.Receive(&target)
-
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-
-	str := "Hello, " + target + "!"
-
-	fmt.Println(str)
-	msg.Respond(str)
-}
-
-func goodbyeHandler(msg gs.Msg) {
-	var target string
-
-	err := msg.Receive(&target)
-
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-
-	str := "Goodbye, " + target + "."
-
-	fmt.Println(str)
-	msg.Respond(str)
-}
-
+/*
 func convoHandler(msg gs.Msg) {
 	var target string
 
@@ -99,6 +59,10 @@ func convoHandler(msg gs.Msg) {
 	fmt.Println("Convo: sent turtles")
 }
 
+func index(w http.ResponseWriter, req *http.Request) {
+	w.Write([]byte(page))
+}
+
 const page = `<!DOCTYPE html>
 <html>
 <head>
@@ -127,11 +91,8 @@ const page = `<!DOCTYPE html>
 		log(msg.data);
 	});
 
-	gs.send("/goodbye", "cruel world").response(function(msg) {
-		log(msg.data);
-	});
-
 	setTimeout(gs.close, 2000);
 	</script>
 </body>
 </html>`
+*/
