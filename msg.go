@@ -51,32 +51,21 @@ func (m message) Respond(data interface{}) error {
 	return m.conn.sendMsg(m)
 }
 
-func (m message) TimedResponse(timeout time.Duration) (Msg, error) {
-	thread, ok := m.conn.conversations[m.ID]
-	if !ok {
-		thread = make(chan message)
-		m.conn.conversations[m.ID] = thread
-	}
-
-	select {
-	case <-time.After(timeout):
-		return m, timeoutErr
-
-	case msg, ok := <-thread:
-		if ok {
-			return msg, nil
-		}
-		return msg, closeErr
-	}
-}
-
 func (m message) Response() (Msg, error) {
+	m.conn.lock.Lock()
+	if !m.conn.open {
+		m.conn.lock.Unlock()
+		return nil, closeErr
+	}
+
 	thread, ok := m.conn.conversations[m.ID]
 
 	if !ok {
 		thread = make(chan message)
 		m.conn.conversations[m.ID] = thread
 	}
+
+	m.conn.lock.Unlock()
 
 	msg, ok := <-thread
 
@@ -85,3 +74,28 @@ func (m message) Response() (Msg, error) {
 	}
 	return msg, closeErr
 }
+
+func (m message) TimedResponse(timeout time.Duration) (Msg, error) {
+	type msgResponse struct {
+		msg Msg
+		err error
+	}
+	resp := make(chan msgResponse)
+
+	go func() {
+		msg, err := m.Response()
+		resp <- msgResponse{msg, err}
+	}()
+
+	select {
+	case <-time.After(timeout):
+		go func() {
+			<-resp
+		}()
+		return m, timeoutErr
+
+	case msg := <-resp:
+		return msg.msg, msg.err
+	}
+}
+
