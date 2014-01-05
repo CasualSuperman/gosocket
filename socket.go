@@ -32,7 +32,6 @@ type Server struct {
 	connect    func(*Conn)
 	disconnect func(*Conn)
 	wsServer   ws.Server
-	errorFunc  func(error)
 }
 
 // NewServer returns a new server with the default no-op handlers.
@@ -54,36 +53,9 @@ func NewServer() *Server {
 			s.connect(c)
 		}
 
-		for {
-			msg, err := c.msg()
-
-			if err == nil {
-				if msg.IsResp {
-					if ch, ok := c.conversations[msg.ID]; ok {
-						ch <- msg
-					}
-				} else {
-					handlers := s.handlers[msg.Path]
-					for _, handler := range handlers {
-						go handler(msg)
-					}
-					handlers = c.handlers[msg.Path]
-					for _, handler := range handlers {
-						go handler(msg)
-					}
-				}
-
-			} else if err == io.EOF {
-				c.open = false
-				for _, ch := range c.conversations {
-					close(ch)
-				}
-				if s.disconnect != nil {
-					s.disconnect(c)
-				}
-				break
-			} else if s.errorFunc != nil {
-				s.errorFunc(err)
+		if err := c.handleMessages(s.handlers); err != nil {
+			if err == io.EOF && s.disconnect != nil {
+				s.disconnect(c)
 			}
 		}
 	}
@@ -108,11 +80,6 @@ func (s *Server) On(e eventType, f func(*Conn)) {
 	case Disconnect:
 		s.disconnect = f
 	}
-}
-
-// Errored is called when a server has a problem decoding a message.  This function is mainly useful for debugging.
-func (s *Server) Errored(f func(error)) {
-	s.errorFunc = f
 }
 
 // ServeHTTP allows a server to be added to an http.Server.
