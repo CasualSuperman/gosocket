@@ -31,7 +31,6 @@ func printHandler(msg gs.Msg) {
 		return
 	}
 
-
 	fmt.Println("Hello, " + str + "!")
 }
 

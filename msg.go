@@ -99,4 +99,3 @@ func (m message) TimedResponse(timeout time.Duration) (Msg, error) {
 		return msg.msg, msg.err
 	}
 }
-
