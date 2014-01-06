@@ -38,7 +38,7 @@ func clearSocketServer() {
 func TestServerBindFail(t *testing.T) {
 	connected := make(chan error)
 	go func() {
-		connected <- http.ListenAndServe(":2", NewServer())
+		connected <- http.ListenAndServe(":2p", NewServer())
 	}()
 
 	select {
@@ -47,7 +47,7 @@ func TestServerBindFail(t *testing.T) {
 			t.Error("bind returned but with no error")
 		}
 	case <-time.After(100 * time.Millisecond):
-		t.Error("binded correctly to unprivileged port")
+		t.Error("binded correctly to poorly formatted port")
 	}
 }
 
