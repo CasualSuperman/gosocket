@@ -37,7 +37,7 @@ func clearMsgServer() {
 func TestMsgReceive(t *testing.T) {
 	type testStruct struct {
 		Field1, Field2 int
-		Field3 string
+		Field3         string
 	}
 	defer clearMsgServer()
 	done := make(chan bool)
@@ -65,7 +65,7 @@ func TestMsgReceive(t *testing.T) {
 		}
 		done <- true
 	})
-	c.Send("struct", testStruct{1,2,"test"})
+	c.Send("struct", testStruct{1, 2, "test"})
 	<-done
 
 	msgServer.Handle("int", func(m Msg) {
@@ -108,7 +108,7 @@ func TestMsgRespondFail(t *testing.T) {
 	c, _ := connectMsgTestServer()
 
 	msgServer.Handle("echo", func(m Msg) {
-		err := m.Respond(func(){})
+		err := m.Respond(func() {})
 		if err == nil {
 			t.Error("respond should not have succeeded")
 		}
@@ -176,8 +176,7 @@ func TestMsgResponseClosedAfter(t *testing.T) {
 		c.Close()
 	}()
 
-
-	msg, _ := c.Send("test", func(){})
+	msg, _ := c.Send("test", func() {})
 	_, err := msg.Response()
 	if err == nil {
 		t.Error("response should fail")

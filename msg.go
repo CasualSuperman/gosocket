@@ -52,20 +52,21 @@ func (m message) Respond(data interface{}) error {
 }
 
 func (m message) Response() (Msg, error) {
-	m.conn.lock.Lock()
+	m.conn.lock.RLock()
 	if !m.conn.open {
-		m.conn.lock.Unlock()
+		m.conn.lock.RUnlock()
 		return nil, closeErr
 	}
 
 	thread, ok := m.conn.conversations[m.ID]
+	m.conn.lock.RUnlock()
 
 	if !ok {
+		m.conn.lock.Lock()
 		thread = make(chan message)
 		m.conn.conversations[m.ID] = thread
+		m.conn.lock.Unlock()
 	}
-
-	m.conn.lock.Unlock()
 
 	msg, ok := <-thread
 
@@ -98,4 +99,3 @@ func (m message) TimedResponse(timeout time.Duration) (Msg, error) {
 		return msg.msg, msg.err
 	}
 }
-

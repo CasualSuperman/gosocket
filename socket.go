@@ -14,6 +14,9 @@ import (
 func mutex() (s sync.Mutex) {
 	return
 }
+func rwmutex() (s sync.RWMutex) {
+	return
+}
 
 type eventType byte
 
@@ -32,6 +35,7 @@ type Server struct {
 	connect    func(*Conn)
 	disconnect func(*Conn)
 	wsServer   ws.Server
+	lock       sync.RWMutex
 }
 
 // NewServer returns a new server with the default no-op handlers.
@@ -46,17 +50,23 @@ func NewServer() *Server {
 			make(map[int]chan message),
 			randSrc.Int(),
 			true,
-			mutex(),
+			rwmutex(),
 		}
+
+		s.lock.RLock()
 
 		if s.connect != nil {
 			s.connect(c)
 		}
 
+		s.lock.RUnlock()
+
 		if err := c.handleMessages(s.handlers); err != nil {
+			s.lock.RLock()
 			if err == io.EOF && s.disconnect != nil {
 				s.disconnect(c)
 			}
+			s.lock.RUnlock()
 		}
 	}
 
@@ -74,6 +84,8 @@ func (s *Server) Handle(path string, h Handler) {
 
 // On allows a server to handle connection events. Each server can only have one handler for each event type.
 func (s *Server) On(e eventType, f func(*Conn)) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
 	switch e {
 	case Connect:
 		s.connect = f

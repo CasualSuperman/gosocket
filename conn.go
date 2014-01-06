@@ -18,7 +18,7 @@ type Conn struct {
 	conversations map[int]chan message
 	messageID     int
 	open          bool
-	lock          sync.Mutex
+	lock          sync.RWMutex
 }
 
 func (c *Conn) handleMessages(serverHandlers map[string][]Handler) error {
@@ -36,19 +36,23 @@ func (c *Conn) handleMessages(serverHandlers map[string][]Handler) error {
 			return err
 		}
 
-
+		c.lock.RLock()
 		if msg.IsResp {
 			if ch, ok := c.conversations[msg.ID]; ok {
 				ch <- msg
 			}
+			c.lock.RUnlock()
 		} else {
 			handlers := serverHandlers[msg.Path]
+			c.lock.RUnlock()
 
 			for _, handler := range handlers {
 				go handler(msg)
 			}
 
+			c.lock.RLock()
 			handlers = c.handlers[msg.Path]
+			c.lock.RUnlock()
 
 			for _, handler := range handlers {
 				go handler(msg)
@@ -122,7 +126,7 @@ func Open(location string) (*Conn, error) {
 		make(map[int]chan message),
 		rand.Int(),
 		true,
-		mutex(),
+		rwmutex(),
 	}
 	go conn.handleMessages(nil)
 	return conn, nil

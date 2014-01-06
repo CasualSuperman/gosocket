@@ -2,9 +2,9 @@ package gosocket
 
 import (
 	"net/http"
+	"sync"
 	"testing"
 	"time"
-	"sync"
 )
 
 var connServer *Server
@@ -98,7 +98,7 @@ func TestConnSend(t *testing.T) {
 func TestConnSendUnsendable(t *testing.T) {
 	defer clearConnServer()
 	conn, _ := connectConnServer()
-	_, err := conn.Send("wherever", func(){})
+	_, err := conn.Send("wherever", func() {})
 	if err == nil {
 		t.Error("can't encode a function to JSON")
 	}
