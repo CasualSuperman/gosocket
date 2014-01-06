@@ -11,9 +11,6 @@ import (
 	ws "code.google.com/p/go.net/websocket"
 )
 
-func mutex() (s sync.Mutex) {
-	return
-}
 func rwmutex() (s sync.RWMutex) {
 	return
 }
