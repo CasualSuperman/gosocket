@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"sync"
 
-	ws "code.google.com/p/go.net/websocket"
+	ws "golang.org/x/net/websocket"
 )
 
 var emptyHandlerMap = map[string][]Handler{}
